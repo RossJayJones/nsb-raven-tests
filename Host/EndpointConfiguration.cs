@@ -37,7 +37,17 @@ namespace Host
             store.Initialize();
 
             var persistence = configuration.UsePersistence<RavenDBPersistence>().SetDefaultDocumentStore(store).DoNotSetupDatabasePermissions();
-            persistence.UseSharedSession(() => store.OpenSession());
+            persistence.UseSharedSession(() =>
+            {
+                var session = store.OpenSession();
+
+                if (session == null)
+                {
+                    throw new Exception("Session cannot be null");
+                }
+
+                return session;
+            });
 
             var container = new UnityContainer();
             configuration.UseContainer<UnityBuilder>(customisations => { customisations.UseExistingContainer(container); });
