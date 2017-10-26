@@ -18,23 +18,28 @@ namespace Host
             XmlConfigurator.Configure();
             LogManager.Use<Log4NetFactory>();
 
-            var container = BootstrapApplication();
 
             configuration.EndpointName("raven-tests");
 
             configuration.UseTransport<MsmqTransport>();
             configuration.UseSerialization<JsonSerializer>();
 
-            var store = container.Resolve<IDocumentStore>();
-
-            if (store == null)
+            var store = new DocumentStore
             {
-                throw new NullReferenceException("Store cannot be null");
-            }
+                EnlistInDistributedTransactions = false,
+                Conventions =
+                    {
+                        ShouldCacheRequest = url => true,
+                        ShouldAggressiveCacheTrackChanges = false
+                    },
+                ConnectionStringName = "raven-db"
+            };
+            store.Initialize();
 
             var persistence = configuration.UsePersistence<RavenDBPersistence>().SetDefaultDocumentStore(store).DoNotSetupDatabasePermissions();
-            persistence.UseSharedSession(() => container.Resolve<IDocumentSession>());
+            persistence.UseSharedSession(() => store.OpenSession());
 
+            var container = new UnityContainer();
             configuration.UseContainer<UnityBuilder>(customisations => { customisations.UseExistingContainer(container); });
 
             var transactions = configuration.Transactions();
@@ -54,27 +59,6 @@ namespace Host
             }
 
             return (type.Namespace.Contains("Trackmatic.") || type.Namespace.Contains("Tracking.")) && check.Any(x => type.Namespace.Contains(x));
-        }
-
-        private IUnityContainer BootstrapApplication()
-        {
-            var container = new UnityContainer();
-            container.RegisterType<IDocumentStore>(new ContainerControlledLifetimeManager(), new InjectionFactory(c =>
-            {
-                var store = new DocumentStore
-                {
-                    EnlistInDistributedTransactions = false,
-                    Conventions =
-                    {
-                        ShouldCacheRequest = url => true,
-                        ShouldAggressiveCacheTrackChanges = false
-                    },
-                    ConnectionStringName = "raven-db"
-                };
-                store.Initialize();
-                return store;
-            }));
-            return container;
         }
     }
 }
