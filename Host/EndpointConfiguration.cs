@@ -26,6 +26,12 @@ namespace Host
             configuration.UseSerialization<JsonSerializer>();
 
             var store = container.Resolve<IDocumentStore>();
+
+            if (store == null)
+            {
+                throw new NullReferenceException("Store cannot be null");
+            }
+
             var persistence = configuration.UsePersistence<RavenDBPersistence>().SetDefaultDocumentStore(store).DoNotSetupDatabasePermissions();
             persistence.UseSharedSession(() => container.Resolve<IDocumentSession>());
 
