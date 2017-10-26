@@ -35,7 +35,6 @@ namespace Host
             transactions.DoNotWrapHandlersExecutionInATransactionScope();
             transactions.DisableDistributedTransactions();
             configuration.RijndaelEncryptionService();
-            configuration.Transactions().Enable().EnableDistributedTransactions();
             var conventions = configuration.Conventions();
             conventions.DefiningEventsAs(type => IsMessage(type, ".Events"));
             conventions.DefiningMessagesAs(type => IsMessage(type, ".Messages", ".Commands"));
